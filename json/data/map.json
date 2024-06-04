@@ -1,0 +1,14 @@
+{
+    "id": 1,
+    "nombre": "Juan Pérez",
+    "edad": 35,
+    "direccion": {
+        "calle": "Carrera 12 # 34-56",
+        "ciudad": "Bogotá",
+        "pais": "Colombia"
+    },
+    "trabajo": {
+        "empresa": "ACME Inc.",
+        "cargo": "Ingeniero de software"
+    }
+}
