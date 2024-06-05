@@ -11,14 +11,14 @@ func FlattenSliceMap(data []map[string]any) []map[string]string {
 	return flatData
 }
 
-func flattenMap(prefix string, input map[string]interface{}, output map[string]string) {
+func flattenMap(prefix string, input map[string]any, output map[string]string) {
 	for key, value := range input {
 		fullKey := key
 		if prefix != "" {
 			fullKey = key
 		}
 		switch value := value.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			flattenMap(fullKey, value, output)
 		default:
 			output[fullKey] = fmt.Sprint(value)

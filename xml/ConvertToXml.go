@@ -3,8 +3,8 @@ package xml
 import (
 	"encoding/xml"
 	"fmt"
-	myJson "github/file_converter/json"
-	"github/file_converter/utils"
+	myJson "github.com/DeijoseDevelop/file_converter/json"
+	"github.com/DeijoseDevelop/file_converter/utils"
 	"os"
 )
 
@@ -13,7 +13,7 @@ type MapEntry struct {
 	Value   string `xml:",chardata"`
 }
 
-func ConvertToXml(path string) error {
+func ConvertToXml(path, to string) error {
 	file, fileErr := utils.OpenOrCreateFile("export.xml")
 	if fileErr != nil {
 		return fmt.Errorf(fileErr.Error())
@@ -43,7 +43,7 @@ func ConvertToXml(path string) error {
 		if _, err := file.Write(itemXml); err != nil {
 			return fmt.Errorf("error writing XML file: %s", err)
 		}
-		if _, err := file.Write([]byte("\n")); err != nil { // opcional: agregar un salto de línea entre objetos
+		if _, err := file.Write([]byte("\n")); err != nil {
 			return fmt.Errorf("error writing new line to XML file: %s", err)
 		}
 	}

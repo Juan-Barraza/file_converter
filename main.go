@@ -3,12 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github/file_converter/csv"
-	"github/file_converter/xml"
+	"path/filepath"
+	"runtime"
 	"time"
+
+	"github.com/DeijoseDevelop/file_converter/csv"
+	"github.com/DeijoseDevelop/file_converter/xml"
 )
 
-type ConvertFunc func(string) error
+type ConvertFunc func(string, string) error
 
 func main() {
 	start := time.Now()
@@ -16,6 +19,10 @@ func main() {
 	path := flag.String("path", "", "Ruta al archivo a convertir")
 	to := flag.String("to", "", "Formato de salida (json, csv, xml, yaml)")
 	flag.Parse()
+
+	var memStats runtime.MemStats
+    runtime.ReadMemStats(&memStats)
+    initialAlloc := memStats.Alloc
 
 	fmt.Println("Convirtiendo archivo:", *path, "a formato:", *to)
 
@@ -39,12 +46,19 @@ func main() {
 	}
 
 	if convertFunc, ok := convertOptions[*to]; ok {
-		err := convertFunc(*path)
+		err := convertFunc(*path, filepath.Ext(*path)[1:])
 		fmt.Println(err)
 	}
 
+	runtime.ReadMemStats(&memStats)
+    finalAlloc := memStats.Alloc
+
 	duration := time.Since(start)
-	seconds := duration.Seconds()
+	seconds := float64(duration.Nanoseconds()) / 1000000000.0
+    cpuUsagePercent := 100 * seconds / (seconds * float64(runtime.NumCPU()))
+    memoryUsageMB := float64(finalAlloc - initialAlloc) / 1024.0 / 1024.0
 
 	fmt.Printf("Conversión completada en %.2f segundos\n", seconds)
+    fmt.Printf("Uso de memoria: %.2f MB\n", memoryUsageMB)
+    fmt.Printf("Uso de CPU: %.2f%%\n", cpuUsagePercent)
 }

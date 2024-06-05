@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 	"fmt"
-	"github/file_converter/utils"
+	"github.com/DeijoseDevelop/file_converter/utils"
 )
 
 func ReadJson(path string) ([]map[string]any, error) {
