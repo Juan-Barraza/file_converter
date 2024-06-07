@@ -3,15 +3,21 @@ package xml
 import (
 	"encoding/xml"
 	"fmt"
+	"sync"
+
 	myJson "github.com/DeijoseDevelop/file_converter/json"
 	"github.com/DeijoseDevelop/file_converter/utils"
-	"os"
+	csv "github.com/DeijoseDevelop/file_converter/csv"
+
+	
 )
 
 type MapEntry struct {
 	XMLName xml.Name
 	Value   string `xml:",chardata"`
 }
+
+type ReadConvertFunc func(string) ([]map[string]any, error)
 
 func ConvertToXml(path, to string) error {
 	file, fileErr := utils.OpenOrCreateFile("export.xml")
@@ -20,26 +26,64 @@ func ConvertToXml(path, to string) error {
 	}
 	defer file.Close()
 
-	jsonFile, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("error opening the file: %s", err)
-	}
-	defer jsonFile.Close()
-
-	jsonData, err := myJson.ReadJson(path)
-	if err != nil {
-		return fmt.Errorf("error decoding file: %s", err)
+	readConvertOptions := map[string]ReadConvertFunc{
+		"json": myJson.ReadJson,
+		"csv":  csv.ReadCSV, 
+		"xml":  myJson.ReadJson, 
+		"yaml": myJson.ReadJson, 
 	}
 
-	for _, item := range utils.FlattenSliceMap(jsonData) {
-		entries := make([]MapEntry, 0, len(item))
-		for k, v := range item {
-			entries = append(entries, MapEntry{XMLName: xml.Name{Local: k}, Value: fmt.Sprintf("%v", v)})
-		}
-		itemXml, err := xml.MarshalIndent(entries, "", "   ")
+	var maps []map[string]any
+
+	if readConvertFunc, ok := readConvertOptions[to]; ok {
+		data, err := readConvertFunc(path)
 		if err != nil {
-			return fmt.Errorf("error converting item to XML: %s", err)
+			return fmt.Errorf("error decoding file: %s", err)
 		}
+		maps = data
+	} else {
+		return fmt.Errorf("unsupported format: %s", to)
+	}
+
+	flatData := utils.FlattenSliceMap(maps)
+
+	numWorkers := 4
+	jobs := make(chan map[string]string, len(flatData))
+	results := make(chan []byte, len(flatData))
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for record := range jobs {
+				entries := make([]MapEntry, 0, len(record))
+				for k, v := range record {
+					entries = append(entries, MapEntry{XMLName: xml.Name{Local: k}, Value: fmt.Sprintf("%v", v)})
+				}
+				itemXml, err := xml.MarshalIndent(entries, "", "   ")
+				if err != nil {
+					fmt.Printf("error converting item to XML: %s\n", err)
+					continue
+				}
+				results <- itemXml
+			}
+		}()
+	}
+
+	go func() {
+		for _, record := range flatData {
+			jobs <- record
+		}
+		close(jobs)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for itemXml := range results {
 		if _, err := file.Write(itemXml); err != nil {
 			return fmt.Errorf("error writing XML file: %s", err)
 		}
