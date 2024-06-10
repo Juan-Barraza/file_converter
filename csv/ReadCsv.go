@@ -3,14 +3,16 @@ package csv
 import (
 	"encoding/csv"
 	"fmt"
-
-	"github.com/DeijoseDevelop/file_converter/utils"
+	"os"
+	"github.com/DeijoseDevelop/file_converter/converter"
 )
 
-type ReadConvert func(string) ([]map[string]any, error)
+func init() {
+	converter.RegisterReadConvertFunc("csv", ReadCSV)
+}
 
-func ReadCSV(path string) ([]map[string]any, error) {
-	file, err := utils.ReadFile(path)
+func ReadCSV(path string) ([]map[string]interface{}, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("error opening the file: %s", err)
 	}
@@ -22,22 +24,20 @@ func ReadCSV(path string) ([]map[string]any, error) {
 		return nil, fmt.Errorf("error reading the csv headers: %s", err)
 	}
 
-	var records []map[string]any
-
+	var records []map[string]interface{}
 	for {
 		record, err := reader.Read()
 		if err != nil {
 			break
 		}
 
-		row := make(map[string]any)
+		row := make(map[string]interface{})
 		for i, header := range headers {
 			row[header] = record[i]
 		}
 
 		records = append(records, row)
 	}
-
 
 	return records, nil
 }

@@ -4,15 +4,15 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
-	"github.com/DeijoseDevelop/file_converter/json"
-	"github.com/DeijoseDevelop/file_converter/utils"
+	"os"
 	"sync"
+
+	"github.com/DeijoseDevelop/file_converter/converter"
+	"github.com/DeijoseDevelop/file_converter/utils"
 )
 
-type ReadConvertFunc func(string) ([]map[string]any, error)
-
 func ConvertToCsv(path, to string) error {
-	file, fileErr := utils.OpenOrCreateFile("export.csv")
+	file, fileErr := os.Create("export.csv")
 	if fileErr != nil {
 		return fmt.Errorf(fileErr.Error())
 	}
@@ -22,16 +22,9 @@ func ConvertToCsv(path, to string) error {
 	writer := csv.NewWriter(bufferedWriter)
 	defer writer.Flush()
 
-	readConvertOptions := map[string]ReadConvertFunc{
-		"json": json.ReadJson,
-		"csv":  json.ReadJson,
-		"xml":  json.ReadJson,
-		"yaml": json.ReadJson,
-	}
+	var maps []map[string]interface{}
 
-	var maps []map[string]any
-
-	if readConvertFunc, ok := readConvertOptions[to]; ok {
+	if readConvertFunc, ok := converter.GetReadConvertFunc(to); ok {
 		data, err := readConvertFunc(path)
 		if err != nil {
 			return fmt.Errorf("error decoding file: %s", err)
@@ -40,6 +33,13 @@ func ConvertToCsv(path, to string) error {
 	}
 
 	flatData := utils.FlattenSliceMap(maps)
+
+	fmt.Println("Datos decodificados del JSON:", maps)
+
+
+	if len(flatData) == 0 {
+		return fmt.Errorf("no data to convert to CSV")
+	}
 
 	var headers []string
 	for key := range flatData[0] {

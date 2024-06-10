@@ -3,13 +3,10 @@ package xml
 import (
 	"encoding/xml"
 	"fmt"
+	"os"
 	"sync"
-
-	myJson "github.com/DeijoseDevelop/file_converter/json"
 	"github.com/DeijoseDevelop/file_converter/utils"
-	csv "github.com/DeijoseDevelop/file_converter/csv"
-
-	
+	"github.com/DeijoseDevelop/file_converter/converter"
 )
 
 type MapEntry struct {
@@ -17,35 +14,24 @@ type MapEntry struct {
 	Value   string `xml:",chardata"`
 }
 
-type ReadConvertFunc func(string) ([]map[string]any, error)
-
 func ConvertToXml(path, to string) error {
-	file, fileErr := utils.OpenOrCreateFile("export.xml")
+	file, fileErr := os.Create("export.xml")
 	if fileErr != nil {
 		return fmt.Errorf(fileErr.Error())
 	}
 	defer file.Close()
 
-	readConvertOptions := map[string]ReadConvertFunc{
-		"json": myJson.ReadJson,
-		"csv":  csv.ReadCSV, 
-		"xml":  myJson.ReadJson, 
-		"yaml": myJson.ReadJson, 
+	readConvertFunc, ok := converter.GetReadConvertFunc(to)
+	if !ok {
+		return fmt.Errorf("unsupported conversion type: %s", to)
 	}
 
-	var maps []map[string]any
-
-	if readConvertFunc, ok := readConvertOptions[to]; ok {
-		data, err := readConvertFunc(path)
-		if err != nil {
-			return fmt.Errorf("error decoding file: %s", err)
-		}
-		maps = data
-	} else {
-		return fmt.Errorf("unsupported format: %s", to)
+	data, err := readConvertFunc(path)
+	if err != nil {
+		return fmt.Errorf("error decoding file: %s", err)
 	}
 
-	flatData := utils.FlattenSliceMap(maps)
+	flatData := utils.FlattenSliceMap(data)
 
 	numWorkers := 4
 	jobs := make(chan map[string]string, len(flatData))

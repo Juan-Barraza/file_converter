@@ -2,7 +2,7 @@ package utils
 
 import "fmt"
 
-func FlattenSliceMap(data []map[string]any) []map[string]string {
+func FlattenSliceMap(data []map[string]interface{}) []map[string]string {
 	flatData := make([]map[string]string, len(data))
 	for i, item := range data {
 		flatData[i] = make(map[string]string)
@@ -11,7 +11,7 @@ func FlattenSliceMap(data []map[string]any) []map[string]string {
 	return flatData
 }
 
-func flattenMap(prefix string, input map[string]any, output map[string]string) {
+func flattenMap(prefix string, input map[string]interface{}, output map[string]string) {
 	for key, value := range input {
 		fullKey := key
 		if prefix != "" {
