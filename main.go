@@ -11,6 +11,7 @@ import (
 	"github.com/DeijoseDevelop/file_converter/json"
 	"github.com/DeijoseDevelop/file_converter/csv"
 	"github.com/DeijoseDevelop/file_converter/xml"
+	"github.com/DeijoseDevelop/file_converter/yaml"
 )
 
 type ConvertFunc func(string, string) error
@@ -32,12 +33,13 @@ func main() {
 		"json": json.ConvertToJson,
 		"csv":  csv.ConvertToCsv,
 		"xml":  xml.ConvertToXml,
-		"yaml": csv.ConvertToCsv,
+		"yaml": yaml.ConvertToYaml,
 	}
 
 	converter.RegisterReadConvertFunc("json", json.ReadJson)
 	converter.RegisterReadConvertFunc("csv", csv.ReadCSV)
 	converter.RegisterReadConvertFunc("xml", xml.ReadXml)
+	converter.RegisterReadConvertFunc("yaml", yaml.ReadYaml)
 
 	if *path == "" || *to == "" {
 		fmt.Println("Error: Debes proporcionar la ruta al archivo y el formato de salida.")
