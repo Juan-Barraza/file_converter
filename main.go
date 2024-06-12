@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/DeijoseDevelop/file_converter/converter"
+	"github.com/DeijoseDevelop/file_converter/json"
 	"github.com/DeijoseDevelop/file_converter/csv"
 	"github.com/DeijoseDevelop/file_converter/xml"
 )
@@ -33,6 +35,9 @@ func main() {
 		"yaml": csv.ConvertToCsv,
 	}
 
+	converter.RegisterReadConvertFunc("json", json.ReadJson)
+	converter.RegisterReadConvertFunc("csv", csv.ReadCSV)
+
 	if *path == "" || *to == "" {
 		fmt.Println("Error: Debes proporcionar la ruta al archivo y el formato de salida.")
 		return
@@ -47,7 +52,7 @@ func main() {
 
 	if convertFunc, ok := convertOptions[*to]; ok {
 		err := convertFunc(*path, filepath.Ext(*path)[1:])
-		fmt.Println(err)
+		fmt.Printf("Error: %s", err)
 	}
 
 	runtime.ReadMemStats(&memStats)

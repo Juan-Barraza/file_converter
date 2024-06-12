@@ -33,8 +33,6 @@ func ConvertToCsv(path, to string) error {
 
 	flatData := utils.FlattenSliceMap(maps)
 
-	fmt.Println("Datos decodificados del JSON:", maps)
-
 	if len(flatData) == 0 {
 		return fmt.Errorf("no data to convert to CSV")
 	}

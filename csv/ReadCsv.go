@@ -4,12 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
-	"github.com/DeijoseDevelop/file_converter/converter"
 )
-
-func init() {
-	converter.RegisterReadConvertFunc("csv", ReadCSV)
-}
 
 func ReadCSV(path string) ([]map[string]interface{}, error) {
 	file, err := os.Open(path)
