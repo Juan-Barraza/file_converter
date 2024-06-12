@@ -29,7 +29,7 @@ func main() {
 	fmt.Println("Convirtiendo archivo:", *path, "a formato:", *to)
 
 	convertOptions := map[string]ConvertFunc{
-		"json": csv.ConvertToCsv,
+		"json": json.ConvertToJson,
 		"csv":  csv.ConvertToCsv,
 		"xml":  xml.ConvertToXml,
 		"yaml": csv.ConvertToCsv,
@@ -37,6 +37,7 @@ func main() {
 
 	converter.RegisterReadConvertFunc("json", json.ReadJson)
 	converter.RegisterReadConvertFunc("csv", csv.ReadCSV)
+	converter.RegisterReadConvertFunc("xml", xml.ReadXml)
 
 	if *path == "" || *to == "" {
 		fmt.Println("Error: Debes proporcionar la ruta al archivo y el formato de salida.")
@@ -52,7 +53,7 @@ func main() {
 
 	if convertFunc, ok := convertOptions[*to]; ok {
 		err := convertFunc(*path, filepath.Ext(*path)[1:])
-		fmt.Printf("Error: %s", err)
+		fmt.Printf("Error: %s\n", err)
 	}
 
 	runtime.ReadMemStats(&memStats)

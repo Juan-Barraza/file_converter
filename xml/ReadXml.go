@@ -4,13 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
-	"github.com/DeijoseDevelop/file_converter/converter"
 )
-
-func init() {
-	converter.RegisterReadConvertFunc("xml", ReadXml)
-
-}
 
 func ReadXml(path string) ([]map[string]interface{}, error) {
 	file, err := os.Open(path)
@@ -23,6 +17,7 @@ func ReadXml(path string) ([]map[string]interface{}, error) {
 	var records []map[string]interface{}
 	var currentElement string
 	var currentRecord map[string]interface{}
+	var inRecord bool
 
 	for {
 		token, err := decoder.Token()
@@ -35,18 +30,25 @@ func ReadXml(path string) ([]map[string]interface{}, error) {
 
 		switch element := token.(type) {
 		case xml.StartElement:
-			currentElement = element.Name.Local
-			if currentElement == "record" {
+			if element.Name.Local == "record" {
 				currentRecord = make(map[string]interface{})
+				inRecord = true
+			} else if inRecord {
+				currentElement = element.Name.Local
 			}
 		case xml.EndElement:
 			if element.Name.Local == "record" && currentRecord != nil {
 				records = append(records, currentRecord)
 				currentRecord = nil
+				inRecord = false
 			}
+			currentElement = ""
 		case xml.CharData:
-			if currentRecord != nil {
-				currentRecord[currentElement] = string(element)
+			if inRecord && currentElement != "" {
+				trimmedValue := string(element)
+				if len(trimmedValue) > 0 {
+					currentRecord[currentElement] = trimmedValue
+				}
 			}
 		}
 	}

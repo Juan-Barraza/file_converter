@@ -9,9 +9,19 @@ import (
 	"github.com/DeijoseDevelop/file_converter/converter"
 )
 
-type MapEntry struct {
+type XmlMapEntry struct {
 	XMLName xml.Name
 	Value   string `xml:",chardata"`
+}
+
+type XmlRecord struct {
+	XMLName xml.Name `xml:"record"`
+	Entries []XmlMapEntry `xml:",any"`
+}
+
+type XmlRoot struct {
+	XMLName xml.Name `xml:"records"`
+	Records []XmlRecord `xml:"record"`
 }
 
 func ConvertToXml(path, to string) error {
@@ -35,7 +45,7 @@ func ConvertToXml(path, to string) error {
 
 	numWorkers := 4
 	jobs := make(chan map[string]string, len(flatData))
-	results := make(chan []byte, len(flatData))
+	results := make(chan XmlRecord, len(flatData))
 	var wg sync.WaitGroup
 
 	for i := 0; i < numWorkers; i++ {
@@ -43,16 +53,11 @@ func ConvertToXml(path, to string) error {
 		go func() {
 			defer wg.Done()
 			for record := range jobs {
-				entries := make([]MapEntry, 0, len(record))
+				entries := make([]XmlMapEntry, 0, len(record))
 				for k, v := range record {
-					entries = append(entries, MapEntry{XMLName: xml.Name{Local: k}, Value: fmt.Sprintf("%v", v)})
+					entries = append(entries, XmlMapEntry{XMLName: xml.Name{Local: k}, Value: fmt.Sprintf("%v", v)})
 				}
-				itemXml, err := xml.MarshalIndent(entries, "", "   ")
-				if err != nil {
-					fmt.Printf("error converting item to XML: %s\n", err)
-					continue
-				}
-				results <- itemXml
+				results <- XmlRecord{Entries: entries}
 			}
 		}()
 	}
@@ -73,13 +78,18 @@ func ConvertToXml(path, to string) error {
 		close(results)
 	}()
 
-	for itemXml := range results {
-		if _, err := file.Write(itemXml); err != nil {
-			return fmt.Errorf("error writing XML file: %s", err)
-		}
-		if _, err := file.Write([]byte("\n")); err != nil {
-			return fmt.Errorf("error writing new line to XML file: %s", err)
-		}
+	var root XmlRoot
+	for record := range results {
+		root.Records = append(root.Records, record)
+	}
+
+	rootXml, err := xml.MarshalIndent(root, "", "   ")
+	if err != nil {
+		return fmt.Errorf("error marshaling XML: %s", err)
+	}
+
+	if _, err := file.Write(rootXml); err != nil {
+		return fmt.Errorf("error writing XML file: %s", err)
 	}
 
 	return nil
