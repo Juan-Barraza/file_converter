@@ -3,9 +3,10 @@ package xml
 import (
 	"encoding/xml"
 	"fmt"
-	myJson "github.com/DeijoseDevelop/file_converter/json"
-	"github.com/DeijoseDevelop/file_converter/utils"
 	"os"
+	"sync"
+	"github.com/DeijoseDevelop/file_converter/utils"
+	"github.com/DeijoseDevelop/file_converter/converter"
 )
 
 type MapEntry struct {
@@ -14,32 +15,65 @@ type MapEntry struct {
 }
 
 func ConvertToXml(path, to string) error {
-	file, fileErr := utils.OpenOrCreateFile("export.xml")
+	file, fileErr := os.Create("export.xml")
 	if fileErr != nil {
 		return fmt.Errorf(fileErr.Error())
 	}
 	defer file.Close()
 
-	jsonFile, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("error opening the file: %s", err)
+	readConvertFunc, ok := converter.GetReadConvertFunc(to)
+	if !ok {
+		return fmt.Errorf("unsupported conversion type: %s", to)
 	}
-	defer jsonFile.Close()
 
-	jsonData, err := myJson.ReadJson(path)
+	data, err := readConvertFunc(path)
 	if err != nil {
 		return fmt.Errorf("error decoding file: %s", err)
 	}
 
-	for _, item := range utils.FlattenSliceMap(jsonData) {
-		entries := make([]MapEntry, 0, len(item))
-		for k, v := range item {
-			entries = append(entries, MapEntry{XMLName: xml.Name{Local: k}, Value: fmt.Sprintf("%v", v)})
+	flatData := utils.FlattenSliceMap(data)
+
+	numWorkers := 4
+	jobs := make(chan map[string]string, len(flatData))
+	results := make(chan []byte, len(flatData))
+	var wg sync.WaitGroup
+
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for record := range jobs {
+				entries := make([]MapEntry, 0, len(record))
+				for k, v := range record {
+					entries = append(entries, MapEntry{XMLName: xml.Name{Local: k}, Value: fmt.Sprintf("%v", v)})
+				}
+				itemXml, err := xml.MarshalIndent(entries, "", "   ")
+				if err != nil {
+					fmt.Printf("error converting item to XML: %s\n", err)
+					continue
+				}
+				results <- itemXml
+			}
+		}()
+	}
+
+	go func() {
+		for _, record := range flatData {
+			job := make(map[string]string)
+			for k, v := range record {
+				job[k] = fmt.Sprint(v)
+			}
+			jobs <- job
 		}
-		itemXml, err := xml.MarshalIndent(entries, "", "   ")
-		if err != nil {
-			return fmt.Errorf("error converting item to XML: %s", err)
-		}
+		close(jobs)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for itemXml := range results {
 		if _, err := file.Write(itemXml); err != nil {
 			return fmt.Errorf("error writing XML file: %s", err)
 		}

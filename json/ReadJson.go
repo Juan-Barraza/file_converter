@@ -3,8 +3,13 @@ package json
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/DeijoseDevelop/file_converter/converter"
 	"github.com/DeijoseDevelop/file_converter/utils"
 )
+
+func init() {
+	converter.RegisterReadConvertFunc("json", ReadJson)
+}
 
 func ReadJson(path string) ([]map[string]any, error) {
 	file, err := utils.ReadFile(path)
@@ -37,6 +42,8 @@ func ReadJson(path string) ([]map[string]any, error) {
 	default:
 		return nil, fmt.Errorf("the json has an unknow format")
 	}
+
+	fmt.Println("Datos decodificados del JSON:", maps)
 
 	return maps, nil
 }
