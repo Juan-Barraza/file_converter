@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/DeijoseDevelop/file_converter/converter"
@@ -12,7 +11,7 @@ import (
 )
 
 func ConvertToCsv(path, to string) error {
-	file, fileErr := os.Create("export.csv")
+	file, fileErr := utils.OpenOrCreateFile("export.csv")
 	if fileErr != nil {
 		return fmt.Errorf(fileErr.Error())
 	}
@@ -22,7 +21,7 @@ func ConvertToCsv(path, to string) error {
 	writer := csv.NewWriter(bufferedWriter)
 	defer writer.Flush()
 
-	var maps []map[string]interface{}
+	var maps []map[string]any
 
 	if readConvertFunc, ok := converter.GetReadConvertFunc(to); ok {
 		data, err := readConvertFunc(path)
@@ -35,7 +34,6 @@ func ConvertToCsv(path, to string) error {
 	flatData := utils.FlattenSliceMap(maps)
 
 	fmt.Println("Datos decodificados del JSON:", maps)
-
 
 	if len(flatData) == 0 {
 		return fmt.Errorf("no data to convert to CSV")

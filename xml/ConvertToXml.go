@@ -59,7 +59,11 @@ func ConvertToXml(path, to string) error {
 
 	go func() {
 		for _, record := range flatData {
-			jobs <- record
+			job := make(map[string]string)
+			for k, v := range record {
+				job[k] = fmt.Sprint(v)
+			}
+			jobs <- job
 		}
 		close(jobs)
 	}()

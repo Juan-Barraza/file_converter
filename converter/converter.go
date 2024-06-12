@@ -2,7 +2,7 @@ package converter
 
 
 
-type ReadConvertFunc func(string) ([]map[string]interface{}, error)
+type ReadConvertFunc func(string) ([]map[string]any, error)
 
 var readConvertOptions = map[string]ReadConvertFunc{}
 
