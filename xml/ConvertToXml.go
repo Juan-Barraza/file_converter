@@ -3,7 +3,6 @@ package xml
 import (
 	"encoding/xml"
 	"fmt"
-	"os"
 	"sync"
 	"github.com/DeijoseDevelop/file_converter/utils"
 	"github.com/DeijoseDevelop/file_converter/converter"
@@ -25,7 +24,7 @@ type XmlRoot struct {
 }
 
 func ConvertToXml(path, to string) error {
-	file, fileErr := os.Create("export.xml")
+	file, fileErr := utils.OpenOrCreateFile("export.xml")
 	if fileErr != nil {
 		return fmt.Errorf(fileErr.Error())
 	}
